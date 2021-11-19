@@ -31,17 +31,22 @@ def first_generator(some_list):
 
 class FirstIterator:
 	def __init__(self, some_list):
-		self.some_list = sum(some_list, start=[])
+		self.some_list = some_list
 
 	def __iter__(self):
+		self.some_list_iter = iter(self.some_list)
+		self.nested_list = []
 		self.counter = -1
 		return self
 
 	def __next__(self):
 		self.counter += 1
-		if self.counter == len(self.some_list):
-			raise StopIteration
-		return self.some_list[self.counter]
+		if self.counter == len(self.nested_list):
+			self.nested_list = None
+			self.counter = 0
+			while not self.nested_list:
+				self.nested_list = next(self.some_list_iter)
+		return self.nested_list[self.counter]
 
 
 # for item in FirstIterator(nested_list):
@@ -49,19 +54,37 @@ class FirstIterator:
 
 
 class SecondIterator():
-	def __init__(self, some_list):
-		self.some_list = sum(some_list, start=[])
+	def __init__(self, multi_list):
+		self.multi_list = multi_list
 
 	def __iter__(self):
-		self.counter = -1
+		self.iterators_queue = []  # очередь
+		self.current_iterator = iter(self.multi_list)
 		return self
 
 	def __next__(self):
-		if isinstance(self.some_list, list):
-			self.counter += 1
-			if self.counter == len(self.some_list):
-				raise StopIteration
-			return self.some_list[self.counter]
+		while True:
+			try:
+				self.current_element = next(self.current_iterator)
+				#  пытаемся получить следующий элемент
+			except StopIteration:
+				if not self.iterators_queue:
+						# если в текущем итераторе элементов не осталось и очередь иетраторов пуста
+						# завершаем цикл
+					raise StopIteration
+				else:
+						# берем итератор из очереди
+					self.current_iterator = self.iterators_queue.pop()
+					continue
+			if isinstance(self.current_element, list):
+					# если следующий эелемент оказался списком, то
+					# добавляем текущий итератор в очередь
+					# а текущим итераторм делаем следующий элемент
+				self.iterators_queue.append(self.current_iterator)
+				self.current_iterator = iter(self.current_element)
+			else:
+					# если элемент не список, то просто возвращаем его
+				return self.current_element
 
 
 for item in SecondIterator(n_list):
